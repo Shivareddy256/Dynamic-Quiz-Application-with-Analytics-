@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <h2>Welcome, {{ username }}!</h2>
-        <p><a href="{{ url_for('logout') }}">Logout</a></p>
+        <p><a href="{{ url_for('quizzes') }}" class="btn">View Your Quizzes</a></p>
+        <p><a href="{{ url_for('create_quiz') }}" class="btn">Create New Quiz</a></p>
+        <a href="{{ url_for('analytics') }}" class="btn">View Analytics</a>
+        <p><a href="{{ url_for('logout') }}" class="btn">Logout</a></p>
     </div>
 </body>
 </html>
