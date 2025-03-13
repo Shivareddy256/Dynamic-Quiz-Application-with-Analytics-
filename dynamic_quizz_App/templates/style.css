@@ -1,5 +1,5 @@
 /* Reset some default styles */
-body, h1, p {
+body, h1, h2, h3, p, ul, li {
     margin: 0;
     padding: 0;
     font-family: 'Roboto', sans-serif;
@@ -7,11 +7,15 @@ body, h1, p {
 
 /* Basic body styling */
 body {
-    background-color: #26384a;
+    background-color: #26384a; /* Light background for better readability */
     color: #333;
     font-size: 16px;
     line-height: 1.6;
     padding: 20px;
+    background-image: url('quizz.jpg'); /* Add a quiz-themed background image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 /* Center the content */
@@ -19,29 +23,40 @@ body {
     max-width: 800px;
     margin: 0 auto;
     text-align: center;
-    background-color: #dde0f2;
+    background-color: #dde0f2; /* Semi-transparent white background */
     padding: 40px;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Heading styling */
+h1, h2, h3 {
+    color: #007BFF; /* Blue color for headings */
+    margin-bottom: 20px;
+}
+
 h1 {
     font-size: 2.5em;
-    color: #333;
-    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 2em;
+}
+
+h3 {
+    font-size: 1.5em;
 }
 
 /* Paragraph styling */
 p {
     font-size: 1.2em;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     color: #555;
 }
 
 /* Button style */
 .btn {
-    padding: 10px 20px;
+    padding: 10px;
     font-size: 1.1em;
     color: #fff;
     background-color: #007BFF;
@@ -49,11 +64,97 @@ p {
     border-radius: 5px;
     display: inline-block;
     margin-top: 20px;
+    width: 40%;
     transition: background-color 0.3s ease;
+
 }
 
 .btn:hover {
     background-color: #0056b3;
+}
+
+/* Button inside forms */
+form button.btn {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    color: #fff;
+    background-color: #dc3545; /* Red color for delete button */
+    text-decoration: none;
+    border-radius: 5px;
+    border: none; /* Remove default border */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: inline-block;
+    margin-top: 0; /* Remove extra margin */
+}
+
+form button.btn:hover {
+    background-color: #c82333; /* Darker red on hover */
+}
+
+/* Form Styling */
+form {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+form p {
+    margin-bottom: 15px;
+}
+
+form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form textarea,
+form select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+form input[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+form input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Quiz List Styling */
+.quiz-list {
+    list-style: none;
+    padding: 0;
+}
+
+.quiz-list li {
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.quiz-list li h3 {
+    margin-bottom: 10px;
 }
 
 /* Responsive styling */
@@ -66,7 +167,28 @@ p {
         font-size: 2em;
     }
 
+    h2 {
+        font-size: 1.8em;
+    }
+
+    h3 {
+        font-size: 1.3em;
+    }
+
     p {
         font-size: 1.1em;
     }
+}
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.actions .btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px 20px;
+    font-size: 1em;
 }
