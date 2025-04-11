@@ -11,13 +11,133 @@
         <h2>Register</h2>
         <form method="POST">
             {{ form.hidden_tag() }}
-            <p>{{ form.username.label }} {{ form.username() }}</p>
-            <p>{{ form.email.label }} {{ form.email() }}</p>
-            <p>{{ form.password.label }} {{ form.password() }}</p>
-            <p>{{ form.confirm_password.label }} {{ form.confirm_password() }}</p>
-            <p>{{ form.submit() }}</p>
+            <div class="form-group">
+                {{ form.username.label }}
+                {{ form.username(class="form-control") }}
+                {% if form.username.errors %}
+                    <div class="errors">
+                        {% for error in form.username.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.email.label }}
+                {{ form.email(class="form-control") }}
+                {% if form.email.errors %}
+                    <div class="errors">
+                        {% for error in form.email.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.password.label }}
+                {{ form.password(class="form-control", id="password") }}
+                <div class="password-requirements">
+                    <small>Password must contain:</small>
+                    <ul>
+                        <li id="length">At least 12 characters</li>
+                        <li id="uppercase">1 uppercase letter</li>
+                        <li id="lowercase">1 lowercase letter</li>
+                        <li id="number">1 number</li>
+                        <li id="special">1 special character</li>
+                    </ul>
+                    <div class="password-strength">
+                        <div class="strength-bar"></div>
+                        <span class="strength-text">Strength: Weak</span>
+                    </div>
+                </div>
+                {% if form.password.errors %}
+                    <div class="errors">
+                        {% for error in form.password.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.confirm_password.label }}
+                {{ form.confirm_password(class="form-control") }}
+                {% if form.confirm_password.errors %}
+                    <div class="errors">
+                        {% for error in form.confirm_password.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.role.label }}
+                {{ form.role(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.submit(class="btn") }}
+            </div>
         </form>
+        
         <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
     </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const requirements = {
+            length: document.getElementById('length'),
+            uppercase: document.getElementById('uppercase'),
+            lowercase: document.getElementById('lowercase'),
+            number: document.getElementById('number'),
+            special: document.getElementById('special')
+        };
+        const strengthBar = document.querySelector('.strength-bar');
+        const strengthText = document.querySelector('.strength-text');
+
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            
+            // Check requirements
+            const hasLength = password.length >= 12;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[^A-Za-z0-9]/.test(password);
+            
+            // Update requirement indicators
+            requirements.length.style.color = hasLength ? 'green' : 'red';
+            requirements.uppercase.style.color = hasUpper ? 'green' : 'red';
+            requirements.lowercase.style.color = hasLower ? 'green' : 'red';
+            requirements.number.style.color = hasNumber ? 'green' : 'red';
+            requirements.special.style.color = hasSpecial ? 'green' : 'red';
+            
+            // Calculate strength
+            let strength = 0;
+            if (hasLength) strength += 1;
+            if (hasUpper) strength += 1;
+            if (hasLower) strength += 1;
+            if (hasNumber) strength += 1;
+            if (hasSpecial) strength += 1;
+            
+            // Update strength meter
+            const strengthPercent = strength * 20;
+            strengthBar.style.width = strengthPercent + '%';
+            
+            if (strength <= 2) {
+                strengthBar.style.backgroundColor = 'red';
+                strengthText.textContent = 'Strength: Weak';
+            } else if (strength <= 4) {
+                strengthBar.style.backgroundColor = 'orange';
+                strengthText.textContent = 'Strength: Medium';
+            } else {
+                strengthBar.style.backgroundColor = 'green';
+                strengthText.textContent = 'Strength: Strong';
+            }
+        });
+    </script>
 </body>
 </html>
