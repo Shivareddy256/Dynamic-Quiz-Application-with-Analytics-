@@ -7,12 +7,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h2>Welcome, {{ username }}!</h2>
-        <p><a href="{{ url_for('quizzes') }}" class="btn">View Your Quizzes</a></p>
-        <p><a href="{{ url_for('create_quiz') }}" class="btn">Create New Quiz</a></p>
-        <a href="{{ url_for('analytics') }}" class="btn">View Analytics</a>
-        <p><a href="{{ url_for('logout') }}" class="btn">Logout</a></p>
+    <div class="dashboard-container">
+        <h2>Welcome, {{ username.capitalize() }}!</h2>
+        <a href="{{ url_for('quizzes') }}" class="dashboard-btn">View Your Quizzes</a>
+        <a href="{{ url_for('create_quiz') }}" class="dashboard-btn">Create New Quiz</a>
+        <a href="{{ url_for('analytics') }}" class="dashboard-btn">View Analytics</a>
+        <a href="{{ url_for('logout') }}" class="dashboard-btn">Logout</a>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const createQuizBtn = document.querySelector('a[href="{{ url_for("create_quiz") }}"]');
+            
+            createQuizBtn.addEventListener('click', function(e) {
+                {% if current_user.role != 'professor' %}
+                    e.preventDefault(); // Stop navigation
+                    alert("Only Professors Can Create Quizzes");
+                {% endif %}
+            });
+        });
+        </script>
 </body>
 </html>
