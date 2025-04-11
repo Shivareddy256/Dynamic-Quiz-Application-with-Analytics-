@@ -7,7 +7,7 @@ from forms import RegistrationForm, LoginForm, QuizCreationForm, RequestResetFor
 from models import db, User, Quiz, Question, Response
 from config import Config
 
-app = Flask(__name__)
+app = Flask(__name__) 
 app.config.from_object(Config)
 
 db.init_app(app)
@@ -32,7 +32,7 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode("utf-8")
-        user = User(username=form.username.data, email=form.email.data, password_hash=hashed_password)
+        user = User(username=form.username.data, email=form.email.data, password_hash=hashed_password, role=form.role.data)
         db.session.add(user)
         db.session.commit()
         flash("Registration successful! Please log in.", "success")
@@ -60,6 +60,10 @@ def dashboard():
 @app.route("/logout")
 @login_required
 def logout():
+    # Clear any existing flash messages
+    from flask import get_flashed_messages
+    get_flashed_messages()  # This clears the flash message queue
+    
     logout_user()
     flash("You have been logged out.", "info")
     return redirect(url_for("login"))
@@ -67,13 +71,17 @@ def logout():
 @app.route("/create_quiz", methods=["GET", "POST"])
 @login_required
 def create_quiz():
+    if current_user.role != 'professor':
+        flash("This feature is only available for professors", "danger")
+        return redirect(url_for('dashboard')) 
+        
     form = QuizCreationForm()
     if form.validate_on_submit():
         print("Form validated successfully!")  # Debug
         existing_quiz = Quiz.query.filter_by(title=form.title.data, creator_id=current_user.id).first()
         # Save the quiz
         if not existing_quiz:
-            quiz = Quiz(title=form.title.data, creator_id=current_user.id)
+            quiz = Quiz(title=form.title.data,category=request.form.get('category'),  creator_id=current_user.id)
             db.session.add(quiz)
             db.session.commit()
         else:
@@ -109,7 +117,11 @@ def create_quiz():
 @app.route("/quizzes")
 @login_required
 def quizzes():
-    quizzes = Quiz.query.filter_by(creator_id=current_user.id).all()
+    if current_user.role == 'professor':
+        quizzes = Quiz.query.filter_by(creator_id=current_user.id).all()
+    else:
+        # For students, show all quizzes (or assigned quizzes if you implement assignment logic)
+        quizzes = Quiz.query.all()
     return render_template("quizzes.html", quizzes=quizzes)
 
 @app.route("/quiz/<int:quiz_id>")
@@ -135,7 +147,8 @@ def submit_quiz(quiz_id):
             user_id=current_user.id,
             question_id=question.id,
             answer=user_answer,
-            is_correct=is_correct
+            is_correct=is_correct,
+            
         )
         db.session.add(response)
         if is_correct:
@@ -149,7 +162,6 @@ def submit_quiz(quiz_id):
         db.session.commit()
     flash(f"You scored {score}/{len(questions)}!", "info")
     return render_template("quiz_results.html", quiz=quiz, results=results, score=score)
-
 @app.route("/quiz/<int:quiz_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_quiz(quiz_id):
@@ -159,14 +171,27 @@ def edit_quiz(quiz_id):
     if form.validate_on_submit():
         quiz.title = form.title.data
         db.session.commit()
-
-        # Update questions (this is a simplified example; you can expand it)
-        for question in quiz.questions:
-            question.text = form.question_text.data
-            question.question_type = form.question_type.data
-            question.options = form.options.data if form.question_type.data == 'MCQ' else None
-            question.correct_answer = form.correct_answer.data
-            db.session.commit()
+        
+        # Handle all questions (new implementation)
+        question_texts = request.form.getlist('question_text')
+        question_types = request.form.getlist('question_type')
+        options_list = request.form.getlist('options')
+        correct_answers = request.form.getlist('correct_answer')
+        
+        # Clear existing questions
+        Question.query.filter_by(quiz_id=quiz.id).delete()
+        
+        # Add updated questions
+        for i in range(len(question_texts)):
+            question = Question(
+                quiz_id=quiz.id,
+                text=question_texts[i],
+                question_type=question_types[i],
+                options=options_list[i] if question_types[i] == 'MCQ' else None,
+                correct_answer=correct_answers[i]
+            )
+            db.session.add(question)
+        db.session.commit()
 
         flash("Quiz updated successfully!", "success")
         return redirect(url_for("quizzes"))
@@ -174,41 +199,110 @@ def edit_quiz(quiz_id):
     # Pre-fill the form with existing data
     if request.method == "GET":
         form.title.data = quiz.title
-        if quiz.questions:
-            form.question_text.data = quiz.questions[0].text
-            form.question_type.data = quiz.questions[0].question_type
-            form.options.data = quiz.questions[0].options
-            form.correct_answer.data = quiz.questions[0].correct_answer
-
-    return render_template("edit_quiz.html", form=form, quiz=quiz)
+        # Remove the single question pre-fill code
+        
+    return render_template("edit_quiz.html", form=form, quiz=quiz, questions=quiz.questions)
 
 @app.route("/quiz/<int:quiz_id>/delete", methods=["POST"])
 @login_required
 def delete_quiz(quiz_id):
     quiz = Quiz.query.get_or_404(quiz_id)
+    
+    if current_user.role != 'professor' or quiz.creator_id != current_user.id:
+        flash("You don't have permission to delete this quiz", "danger")
+        return redirect(url_for('quizzes'))
 
-    #delete associated questions first
-    for question in quiz.questions:
-        db.session.delete(question)
-
-    db.session.delete(quiz)
-    db.session.commit()
-    flash("Quiz deleted successfully!", "success")
-    return redirect(url_for("quizzes"))
+    try:
+        # Get all question IDs for this quiz
+        question_ids = [q.id for q in quiz.questions]
+        
+        # Delete all responses for these questions
+        Response.query.filter(Response.question_id.in_(question_ids)).delete(synchronize_session=False)
+        
+        # Delete all questions
+        Question.query.filter_by(quiz_id=quiz.id).delete(synchronize_session=False)
+        
+        # Finally delete the quiz
+        db.session.delete(quiz)
+        db.session.commit()
+        flash("Quiz deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting quiz: {str(e)}", "danger")
+        app.logger.error(f"Error deleting quiz: {str(e)}")
+    
+    return redirect(url_for('quizzes'))
 @app.route("/analytics")
 @login_required
 def analytics():
-    quizzes = Quiz.query.filter_by(creator_id=current_user.id).all()
-    quiz_titles = [quiz.title for quiz in quizzes]
-    quiz_scores = []
+    # For professors - show all their quizzes' analytics
+    if current_user.role == 'professor':
+        quizzes = Quiz.query.filter_by(creator_id=current_user.id).all()
+    # For students - show only their responses
+    else:
+        quizzes = Quiz.query.join(Question).join(Response).filter(
+            Response.user_id == current_user.id
+        ).distinct().all()
+    
+    quiz_data = []
+    category_stats = {}
+    
     for quiz in quizzes:
-        score = 0
+        questions_data = []
+        correct = 0
+        incorrect = 0
+        
         for question in quiz.questions:
-            score += sum(1 for response in question.responses if response.is_correct)
-        quiz_scores.append(score)
-
-    return render_template("analytics.html", quiz_titles=quiz_titles, quiz_scores=quiz_scores)
-
+            # For professors - count all responses
+            if current_user.role == 'professor':
+                correct_count = Response.query.filter_by(
+                    question_id=question.id,
+                    is_correct=True
+                ).count()
+                incorrect_count = Response.query.filter_by(
+                    question_id=question.id,
+                    is_correct=False
+                ).count()
+            # For students - only count their own responses
+            else:
+                correct_count = Response.query.filter_by(
+                    question_id=question.id,
+                    user_id=current_user.id,
+                    is_correct=True
+                ).count()
+                incorrect_count = Response.query.filter_by(
+                    question_id=question.id,
+                    user_id=current_user.id,
+                    is_correct=False
+                ).count()
+            
+            correct += correct_count
+            incorrect += incorrect_count
+            
+            questions_data.append({
+                'text': question.text,
+                'correct_count': correct_count,
+                'incorrect_count': incorrect_count
+            })
+        
+        # Update category stats
+        if quiz.category not in category_stats:
+            category_stats[quiz.category] = {'correct': 0, 'incorrect': 0}
+        category_stats[quiz.category]['correct'] += correct
+        category_stats[quiz.category]['incorrect'] += incorrect
+        
+        if correct + incorrect > 0:
+            quiz_data.append({
+                'title': quiz.title,
+                'category': quiz.category,
+                'correct': correct,
+                'incorrect': incorrect,
+                'questions': questions_data
+            })
+    
+    return render_template("analytics.html", 
+                         quiz_data=quiz_data,
+                         category_stats=category_stats)
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
