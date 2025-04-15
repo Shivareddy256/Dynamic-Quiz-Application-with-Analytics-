@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   
+</head>
+<body>
+    <div class="container">
+        <h2>Quiz Analytics</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+        
+        {% if not quiz_data %}
+            <p>No quiz data available yet.</p>
+        {% else %}
+            <!-- Performance Overview Chart -->
+            <div class="chart-container">
+                <h3>Performance Overview</h3>
+                <canvas id="performanceChart"></canvas>
+            </div>
+            
+            <!-- Performance by Category Chart -->
+            <div class="chart-container">
+                <h3>Performance by Category</h3>
+                <canvas id="categoryChart"></canvas>
+            </div>
+            
+            <!-- Summary Statistics -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3>Summary Statistics</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Quiz</th>
+                                <th>Category</th>
+                                <th>Correct</th>
+                                <th>Incorrect</th>
+                                <th>Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for quiz in quiz_data %}
+                            <tr>
+                                <td>{{ quiz.title }}</td>
+                                <td>{{ quiz.category }}</td>
+                                <td class="correct">{{ quiz.correct }}</td>
+                                <td class="incorrect">{{ quiz.incorrect }}</td>
+                                <td>
+                                    {% set total = quiz.correct + quiz.incorrect %}
+                                    {% if total > 0 %}
+                                        {{ ((quiz.correct / total) * 100)|round(1) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Category Breakdown -->
+                <div class="stat-card">
+                    <h3>Category Breakdown</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Correct</th>
+                                <th>Incorrect</th>
+                                <th>Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, stats in category_stats.items() %}
+                            <tr>
+                                <td>{{ category }}</td>
+                                <td class="correct">{{ stats.correct }}</td>
+                                <td class="incorrect">{{ stats.incorrect }}</td>
+                                <td>
+                                    {% set total = stats.correct + stats.incorrect %}
+                                    {% if total > 0 %}
+                                        {{ ((stats.correct / total) * 100)|round(1) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Question-Level Analysis -->
+            <div class="chart-container question-analysis">
+                <h3>Question-Level Analysis</h3>
+                {% for quiz in quiz_data %}
+                    <h4>{{ quiz.title }} ({{ quiz.category }})</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Question</th>
+                                <th>Correct</th>
+                                <th>Incorrect</th>
+                                <th>Difficulty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for question in quiz.questions %}
+                            <tr>
+                                <td class="question-text" title="{{ question.text }}">
+                                    {{ question.text[:80] }}{% if question.text|length > 80 %}...{% endif %}
+                                </td>
+                                <td class="correct">{{ question.correct_count }}</td>
+                                <td class="incorrect">{{ question.incorrect_count }}</td>
+                                <td>
+                                    {% set total = question.correct_count + question.incorrect_count %}
+                                    {% if total > 0 %}
+                                        {{ ((question.correct_count / total) * 100)|round(1) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        {% if quiz_data %}
+        // Performance Chart
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(performanceCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ quiz_data|map(attribute='title')|list|tojson }},
+                datasets: [
+                    {
+                        label: 'Correct Answers',
+                        data: {{ quiz_data|map(attribute='correct')|list|tojson }},
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Incorrect Answers',
+                        data: {{ quiz_data|map(attribute='incorrect')|list|tojson }},
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Answers'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Quiz Title'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Category Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ category_stats.keys()|list|tojson }},
+                datasets: [{
+                    data: {{ category_stats.values()|map(attribute='correct')|list|tojson }},
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Correct Answers by Category'
+                    },
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>

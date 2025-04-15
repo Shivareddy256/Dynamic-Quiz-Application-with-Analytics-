@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Quiz</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Edit Quiz: {{ quiz.title }}</h2>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <p>{{ form.title.label }} {{ form.title() }}</p>
+            
+            <div id="questions-container">
+                {% for question in questions %}
+                <div class="question-group">
+                    <input type="hidden" name="question_ids" value="{{ question.id }}">
+                    <p>Question {{ loop.index }}:</p>
+                    <p>{{ form.question_text.label }} 
+                       <input type="text" name="question_text" value="{{ question.text }}" required></p>
+                    <p>{{ form.question_type.label }} 
+                       <select name="question_type" required>
+                           <option value="MCQ" {% if question.question_type == 'MCQ' %}selected{% endif %}>Multiple Choice</option>
+                           <option value="True/False" {% if question.question_type == 'True/False' %}selected{% endif %}>True/False</option>
+                       </select>
+                    </p>
+                    <p>{{ form.options.label }} 
+                       <input type="text" name="options" value="{{ question.options if question.options else '' }}"></p>
+                    <p>{{ form.correct_answer.label }} 
+                       <input type="text" name="correct_answer" value="{{ question.correct_answer }}" required></p>
+                    <hr>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="submit" class="btn">Update Quiz</button>
+        </form>
+        <a href="{{ url_for('quizzes') }}" class="btn">Back to Quizzes</a>
+    </div>
+</body>
+</html>

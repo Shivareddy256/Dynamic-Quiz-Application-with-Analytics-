@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .question {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .question > div {
+            margin-bottom: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-remove {
+            background-color: #dc3545;
+        }
+        .btn-remove:hover {
+            background-color: #c82333;
+        }
+        .question-counter {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+    </style> -->
+</head>
+<body>
+    <div class="container">
+        <h2>Create Quiz</h2>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.title.label }}
+                {{ form.title() }}
+            </div>
+            <div class="form-group">
+                <label for="category">Category</label>
+                <input type="text" name="category" required>
+            </div>
+            
+            <div id="questions">
+                <div class="question">
+                    <h4>Question 1</h4>
+                    <div class="form-group">
+                        <label>Question Text</label>
+                        <input type="text" name="question_text" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Question Type</label>
+                        <select name="question_type" onchange="toggleOptionsField(this, 1)" required>
+                            <option value="MCQ">Multiple Choice</option>
+                            <option value="True/False">True/False</option>
+                        </select>
+                    </div>
+                    <div class="options-field" id="options-field-1">
+                        <div class="form-group">
+                            <label>Options (Comma-separated for MCQ)</label>
+                            <input type="text" name="options">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Correct Answer</label>
+                        <input type="text" name="correct_answer" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="question-counter">Total Questions: <span id="questionCount">1</span></div>
+            
+            <button type="button" class="btn" onclick="addQuestion()">Add Another Question</button>
+            <div class="form-group">
+                {{ form.submit() }}
+            </div>
+        </form>
+        <a href="{{ url_for('quizzes') }}" class="btn">Back to Quizzes</a>
+    </div>
+
+    <script>
+        let questionCount = 1;
+
+        function addQuestion() {
+            questionCount++;
+            document.getElementById('questionCount').textContent = questionCount;
+            
+            const questionsDiv = document.getElementById('questions');
+            const newQuestion = document.createElement('div');
+            newQuestion.className = 'question';
+            newQuestion.innerHTML = `
+                <h4>Question ${questionCount}</h4>
+                <div class="form-group">
+                    <label>Question Text</label>
+                    <input type="text" name="question_text" required>
+                </div>
+                <div class="form-group">
+                    <label>Question Type</label>
+                    <select name="question_type" onchange="toggleOptionsField(this, ${questionCount})" required>
+                        <option value="MCQ">Multiple Choice</option>
+                        <option value="True/False">True/False</option>
+                    </select>
+                </div>
+                <div class="options-field" id="options-field-${questionCount}">
+                    <div class="form-group">
+                        <label>Options (Comma-separated for MCQ)</label>
+                        <input type="text" name="options">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Correct Answer</label>
+                    <input type="text" name="correct_answer" required>
+                </div>
+                <button type="button" class="btn btn-remove" onclick="this.parentNode.remove(); updateQuestionCount();">Remove Question</button>
+            `;
+            questionsDiv.appendChild(newQuestion);
+        }
+
+        function toggleOptionsField(selectElement, questionNumber) {
+            const optionsField = document.getElementById(`options-field-${questionNumber}`);
+            if (selectElement.value === 'MCQ') {
+                optionsField.style.display = 'block';
+            } else {
+                optionsField.style.display = 'none';
+            }
+        }
+
+        function updateQuestionCount() {
+            const questions = document.querySelectorAll('.question');
+            questionCount = questions.length;
+            document.getElementById('questionCount').textContent = questionCount;
+            
+            // Update question numbers
+            questions.forEach((question, index) => {
+                question.querySelector('h4').textContent = `Question ${index + 1}`;
+            });
+        }
+    </script>
+</body>
+</html>

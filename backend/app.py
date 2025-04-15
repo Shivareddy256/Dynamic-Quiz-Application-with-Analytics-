@@ -162,6 +162,7 @@ def submit_quiz(quiz_id):
         db.session.commit()
     flash(f"You scored {score}/{len(questions)}!", "info")
     return render_template("quiz_results.html", quiz=quiz, results=results, score=score)
+
 @app.route("/quiz/<int:quiz_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_quiz(quiz_id):
@@ -172,34 +173,52 @@ def edit_quiz(quiz_id):
         quiz.title = form.title.data
         db.session.commit()
         
-        # Handle all questions (new implementation)
+        # Handle all questions (updated implementation)
         question_texts = request.form.getlist('question_text')
         question_types = request.form.getlist('question_type')
         options_list = request.form.getlist('options')
         correct_answers = request.form.getlist('correct_answer')
         
-        # Clear existing questions
-        Question.query.filter_by(quiz_id=quiz.id).delete()
+        # Get existing questions
+        existing_questions = {q.id: q for q in quiz.questions}
         
-        # Add updated questions
+        # Update or create questions
         for i in range(len(question_texts)):
-            question = Question(
-                quiz_id=quiz.id,
-                text=question_texts[i],
-                question_type=question_types[i],
-                options=options_list[i] if question_types[i] == 'MCQ' else None,
-                correct_answer=correct_answers[i]
-            )
-            db.session.add(question)
+            # Try to find existing question to update
+            question_id = request.form.getlist('question_ids')[i] if 'question_ids' in request.form else None
+            if question_id and int(question_id) in existing_questions:
+                question = existing_questions[int(question_id)]
+                question.text = question_texts[i]
+                question.question_type = question_types[i]
+                question.options = options_list[i] if question_types[i] == 'MCQ' else None
+                question.correct_answer = correct_answers[i]
+            else:
+                # Create new question
+                question = Question(
+                    quiz_id=quiz.id,
+                    text=question_texts[i],
+                    question_type=question_types[i],
+                    options=options_list[i] if question_types[i] == 'MCQ' else None,
+                    correct_answer=correct_answers[i]
+                )
+                db.session.add(question)
+        
+        # Delete only questions that were removed
+        submitted_question_ids = [int(id) for id in request.form.getlist('question_ids') if id]
+        for q_id, question in existing_questions.items():
+            if q_id not in submitted_question_ids:
+                # First delete responses for this question
+                Response.query.filter_by(question_id=q_id).delete()
+                # Then delete the question
+                db.session.delete(question)
+        
         db.session.commit()
-
         flash("Quiz updated successfully!", "success")
         return redirect(url_for("quizzes"))
 
     # Pre-fill the form with existing data
     if request.method == "GET":
         form.title.data = quiz.title
-        # Remove the single question pre-fill code
         
     return render_template("edit_quiz.html", form=form, quiz=quiz, questions=quiz.questions)
 
